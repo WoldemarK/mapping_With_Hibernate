@@ -1,7 +1,7 @@
-package com.example.demo.oneToMany.controller;
+package com.example.demo.manyToMany.controller;
 
-import com.example.demo.oneToMany.model.Tutorial;
-import com.example.demo.oneToMany.repository.TutorialRepository;
+import com.example.demo.manyToMany.model.Tutorial;
+import com.example.demo.manyToMany.repository.TutorialRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,15 +15,14 @@ import java.util.List;
 @RequestMapping("/api")
 public class TutorialController {
     private final TutorialRepository tutorialRepository;
-
     @GetMapping("/tutorials")
     public ResponseEntity<List<Tutorial>> getAllTutorials(@RequestParam(required = false) String title) {
-        List<Tutorial> tutorials = new ArrayList<>();
+        List<Tutorial> tutorials = new ArrayList<Tutorial>();
 
         if (title == null)
             tutorials.addAll(tutorialRepository.findAll());
         else
-            tutorials.addAll(tutorialRepository.findByTitleContaining(title));
+            tutorialRepository.findByTitleContaining(title).forEach(tutorials::add);
 
         if (tutorials.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -33,29 +32,23 @@ public class TutorialController {
     }
 
     @GetMapping("/tutorials/{id}")
-    public ResponseEntity<Tutorial> getTutorialById(@PathVariable("id") long id) {
-        Tutorial tutorial = tutorialRepository.findById(id).orElseThrow();
+    public ResponseEntity<Tutorial> getTutorialById(@PathVariable("id") long id) throws ResourceNotFoundException {
+        Tutorial tutorial = tutorialRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Not found Tutorial with id = " + id));
 
         return new ResponseEntity<>(tutorial, HttpStatus.OK);
     }
 
     @PostMapping("/tutorials")
     public ResponseEntity<Tutorial> createTutorial(@RequestBody Tutorial tutorial) {
-        Tutorial _tutorial = tutorialRepository.save
-                (
-                        new Tutorial(tutorial.getTitle(),
-                                tutorial.getDescription(), true)
-                );
+        Tutorial _tutorial = tutorialRepository.save(new Tutorial(tutorial.getTitle(), tutorial.getDescription(), true));
         return new ResponseEntity<>(_tutorial, HttpStatus.CREATED);
     }
 
     @PutMapping("/tutorials/{id}")
-    public ResponseEntity<Tutorial> updateTutorial
-            (
-                    @PathVariable("id") long id,
-                    @RequestBody Tutorial tutorial
-            ) {
-        Tutorial _tutorial = tutorialRepository.findById(id).orElseThrow();
+    public ResponseEntity<Tutorial> updateTutorial(@PathVariable("id") long id, @RequestBody Tutorial tutorial) throws ResourceNotFoundException {
+        Tutorial _tutorial = tutorialRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Not found Tutorial with id = " + id));
 
         _tutorial.setTitle(tutorial.getTitle());
         _tutorial.setDescription(tutorial.getDescription());
@@ -88,5 +81,6 @@ public class TutorialController {
 
         return new ResponseEntity<>(tutorials, HttpStatus.OK);
     }
+
 
 }
